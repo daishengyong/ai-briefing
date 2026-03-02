@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Briefing</title>
+  <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial; margin:0; background:#0b0f19; color:#e8eefc;}
+    .wrap{max-width:900px; margin:0 auto; padding:18px;}
+    .card{background:#121a2b; border:1px solid rgba(255,255,255,.08); border-radius:14px; padding:16px; margin:12px 0;}
+    a{color:#7ab7ff; text-decoration:none}
+    a:hover{text-decoration:underline}
+    .top{display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap}
+    .tag{font-size:12px; padding:4px 10px; border-radius:999px; background:rgba(122,183,255,.15); border:1px solid rgba(122,183,255,.35);}
+    .muted{color:rgba(232,238,252,.72)}
+    .list a{display:block; padding:10px 12px; border-radius:10px; background:rgba(255,255,255,.04); margin-top:10px;}
+    .list a:hover{background:rgba(255,255,255,.06)}
+    .footer{font-size:12px; opacity:.7; margin-top:16px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <h2 style="margin:0">📰 AI Briefing</h2>
+      <span class="tag">Mobile-first · Static</span>
+    </div>
+
+    <div class="card">
+      <div class="muted">最新简报</div>
+      <div id="latest" style="margin-top:8px">加载中…</div>
+    </div>
+
+    <div class="card">
+      <div class="muted">历史记录</div>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div class="footer">由 OpenClaw 自动生成/更新（即将接入）。</div>
+  </div>
+
+<script>
+async function main(){
+  try{
+    const res = await fetch('./briefs/manifest.json', {cache:'no-store'});
+    const data = await res.json();
+    const items = (data.items||[]).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+    const latest = items[0];
+
+    const latestEl = document.getElementById('latest');
+    if(!latest){
+      latestEl.innerHTML = '<span class="muted">还没有简报。稍后生成第一篇。</span>';
+    }else{
+      latestEl.innerHTML = `
+        <div style="font-size:18px; font-weight:700">${latest.title||latest.date}</div>
+        <div class="muted" style="margin:6px 0">${latest.date||''}</div>
+        <a href="./briefs/${latest.slug}.html">打开简报 →</a>
+      `;
+    }
+
+    const listEl = document.getElementById('list');
+    listEl.innerHTML = items.slice(0,50).map(it=>(
+      `<a href="./briefs/${it.slug}.html">
+        <div style="font-weight:650">${it.title||it.date}</div>
+        <div class="muted">${it.date||''}</div>
+      </a>`
+    )).join('');
+  }catch(e){
+    document.getElementById('latest').innerHTML = '<span class="muted">manifest.json 不存在或格式错误。</span>';
+  }
+}
+main();
+</script>
+</body>
+</html>
