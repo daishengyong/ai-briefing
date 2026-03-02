@@ -17,7 +17,9 @@ cat > "briefings/$DATE/briefing.html" <<HTML
 <h1>$TITLE</h1>
 <p>生成时间：$(date)</p>
 <hr/>
-<p>（这里将由 OpenClaw 写入内容）</p>
+<!--CONTENT_START-->
+'20 20 12 61 79 80 81 98 33 100 204 250 395 398 399 400 701 702cat content.html 2>/dev/null || echo "<p>（OpenClaw 尚未生成内容）</p>")'
+<!--CONTENT_END-->
 </body>
 HTML
 
