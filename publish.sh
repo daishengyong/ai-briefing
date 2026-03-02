@@ -1,14 +1,10 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 cd "$(dirname "$0")"
 
 DATE=$(date +%F)
-TITLE="$1"
-
-if [ -z "$TITLE" ]; then
-  TITLE="AI Briefing · $DATE"
-fi
+TITLE="${1:-AI Briefing · $DATE}"
 
 mkdir -p "briefings/$DATE"
 
@@ -25,19 +21,32 @@ cat > "briefings/$DATE/briefing.html" <<HTML
 </body>
 HTML
 
-# 更新 manifest
 TMP=$(mktemp)
 
+# ✅ 兼容两种结构：
+# A) {"items":[...]}
+# B) [...]
 if [ -f manifest.json ]; then
-  jq ".items |= [{\"date\":\"$DATE\",\"slug\":\"$DATE\",\"title\":\"$TITLE\"}] + .items" manifest.json > "$TMP"
+  if jq -e 'type=="object" and has("items") and (.items|type=="array")' manifest.json >/dev/null 2>&1; then
+    jq --arg date "$DATE" --arg slug "$DATE" --arg title "$TITLE" \
+      '.items = ([{"date":$date,"slug":$slug,"title":$title}] + .items)' \
+      manifest.json > "$TMP"
+  elif jq -e 'type=="array"' manifest.json >/dev/null 2>&1; then
+    jq --arg date "$DATE" --arg slug "$DATE" --arg title "$TITLE" \
+      '([{"date":$date,"slug":$slug,"title":$title}] + .)' \
+      manifest.json > "$TMP"
+  else
+    # 格式不对就重建为标准 object 结构
+    echo "{\"items\":[{\"date\":\"$DATE\",\"slug\":\"$DATE\",\"title\":\"$TITLE\"}]}" > "$TMP"
+  fi
 else
-  echo "{\"items\": [{\"date\":\"$DATE\",\"slug\":\"$DATE\",\"title\":\"$TITLE\"}]}" > "$TMP"
+  echo "{\"items\":[{\"date\":\"$DATE\",\"slug\":\"$DATE\",\"title\":\"$TITLE\"}]}" > "$TMP"
 fi
 
 mv "$TMP" manifest.json
 
 git add -A
-git commit -m "publish: $DATE"
+git commit -m "publish: $DATE" || echo "no changes to commit"
 git push
 
 echo "发布完成："
